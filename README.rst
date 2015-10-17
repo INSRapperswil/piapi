@@ -15,7 +15,7 @@ access to several *resource*. The resources are of 2 types:
 
 Check the Cisco Prime Infrastructure REST API documentation available at https://{pi-server}/webacs/api/v1/
 
-.. note:: piapi library is only interacting with the REST API using JSON structure.
+Note that piapi library is only interacting with the REST API using JSON structure.
 
 How does piapi works ?
 ======================
@@ -25,7 +25,7 @@ Basic Usage
 
 The following code resumes all functionalities of the *PIAPI* class.
 
-.. code-block::python
+::
 
     from piapi import PIAPI
     
@@ -50,7 +50,7 @@ The *request* method is the generic entry point to interact with the REST API. I
 name as required argument and some *params* (data requests) or *payload* (action requests). All requests will return the response
 as JSON structure.
 
-.. note:: The requests for data resource always returns a detailed JSON structure and not the summary one.
+Also note that the requests for data resource always returns a detailed JSON structure and not the summary one.
 
 Rate Limiting
 -------------
@@ -74,7 +74,7 @@ The Cisco Prime Infrastructure API is only accessible trough HTTP over SSL (HTTP
 class verifies the server's SSL certificate. You can disable this behaviour by setting the *verify* argument of the PIAPI
 constructor to False.
 
-.. code-block::python
+::
 
     api = PIAPI("https://pi-server/", "username" , "password", verify=False)
 
