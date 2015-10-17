@@ -48,9 +48,9 @@ Default number of results per page (check *Rate Limiting* of the API)
 """
 DEFAULT_PAGE_SIZE = 1000
 """
-Default hold time to wait between group of concurren request to avoid rate timiting (check *Rate Limiting* of the API)
+Default hold time in second to wait between group of concurrent request to avoid rate timiting (check *Rate Limiting* of the API)
 """
-DEFAULT_HOLD_TIME = 1000
+DEFAULT_HOLD_TIME = 1
 """
 Default base URI of the Prime API
 """
@@ -116,7 +116,7 @@ class PIAPI(object):
         self.verify = verify
         self.cache = {}
 
-        self._action_resources = collections.defaultdict(default_factory=lambda : {"method": None, "url": None})
+        self._action_resources = collections.defaultdict(default_factory=lambda: {"method": None, "url": None})
         self._data_resources = {}
 
         self.session = requests.Session()
@@ -171,7 +171,7 @@ class PIAPI(object):
         """
         List of all available resources to be requested. This includes actions and data resources.
         """
-        return self.data + self.actions
+        return self.data_resources + self.action_resources
 
     @property
     def data_resources(self):
@@ -192,7 +192,7 @@ class PIAPI(object):
         List of all available action resources, meaning management actions.
         """
         if self._action_resources:
-            return self._action_resources
+            return self._action_resources.keys()
 
         action_resources_url = urlparse.urljoin(self.base_url, "op.json")
         response = self.session.get(action_resources_url)
@@ -221,7 +221,7 @@ class PIAPI(object):
         concurrent_requests : int (optional)
             Number of parallel requests to make (default : piapi.DEFAULT_CONCURRENT_REQUEST).
         hold : int (optional)
-            Hold time in milliseconds to wait between chunk of concurrent requests to avoid rate limiting (default : piapi.DEFAULT_HOLD_TIME).
+            Hold time in second to wait between chunk of concurrent requests to avoid rate limiting (default : piapi.DEFAULT_HOLD_TIME).
 
         Returns
         -------
@@ -254,7 +254,7 @@ class PIAPI(object):
         responses = []
         for chunk_request in chunk_requests:
             responses.append(grequests.map(chunk_request))
-            time.spleep(hold)
+            time.sleep(hold)
 
         #  Parse the results of the previous queries
         results = []
@@ -263,7 +263,7 @@ class PIAPI(object):
             results.append(response_json["QueryResponse"])
         return results
 
-    def request_action(self, action, data=None):
+    def request_action(self, action, payload=None):
         """
         Request an action resource from the REST API.
 
@@ -271,8 +271,8 @@ class PIAPI(object):
         ----------
         action : str
             Action resource to be requested
-        data : dict (optional)
-            JSON data to be sent along the action request (default : empty dict)
+        payload : dict (optional)
+            JSON payload to be sent along the action request (default : empty dict)
 
         Returns
         -------
@@ -285,7 +285,7 @@ class PIAPI(object):
 
         method = self._action_resources[action]["method"]
         url = self._action_resources[action]["url"]
-        response = self.session.request(method, url, data=data, verify=self.verify)
+        response = self.session.request(method, url, data=payload, verify=self.verify)
         return self._parse(response)
 
     def request(self, resource, data=None, params=None, check_cache=True, paging_size=DEFAULT_PAGE_SIZE,
