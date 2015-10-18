@@ -34,6 +34,7 @@ import urlparse
 import collections
 import time
 import copy
+import hashlib
 
 import requests
 import requests.auth
@@ -114,14 +115,17 @@ class PIAPI(object):
         """
         self.base_url = urlparse.urljoin(url, DEFAULT_API_URI)
         self.verify = verify
-        self.cache = {}
+        self.cache = {}  # Caching is used for data resource with keys as checksum of resource's name+params from the request
 
+        # Action resources holds all possible service resources with keys as service name
+        # and hold the HTTP method + full url to request the service.
         self._action_resources = collections.defaultdict(default_factory=lambda: {"method": None, "url": None})
+        # Data resources holds all possible data resources with key as service name and value as full url access.
         self._data_resources = {}
 
         self.session = requests.Session()
         self.session.auth = requests.auth.HTTPBasicAuth(username, password)
-        self.session.keep_alive = False
+        self.session.keep_alive = False  # Disable HTTP keep_alive as advised by the API documentation
 
     def _parse(self, response):
         """
@@ -199,18 +203,18 @@ class PIAPI(object):
         response_json = self._parse(response)
         #  TODO : parse the structure as JSON
 
-    def request_data(self, data, params={}, check_cache=True, paging_size=DEFAULT_PAGE_SIZE, concurrent_requests=DEFAULT_CONCURRENT_REQUEST, hold=DEFAULT_HOLD_TIME):
+    def request_data(self, resource_name, params={}, check_cache=True, paging_size=DEFAULT_PAGE_SIZE, concurrent_requests=DEFAULT_CONCURRENT_REQUEST, hold=DEFAULT_HOLD_TIME):
         """
-        Request a data resource from the REST API. The request can be tuned with filtering, sorting options.
+        Request a resource_name resource from the REST API. The request can be tuned with filtering, sorting options.
         Check the REST API documentation for available filters by resource.
 
         To bypass rate limiting feature of the API you can tune paging_size, concurrent_requests and hold_time parameters.
         'X' concurrent requests will be sent as chunk and we will wait the hold time before sending the next chunk until
-        all data have been retrieved.
+        all resource_name have been retrieved.
 
         Parameters
         ----------
-        data : str
+        resource_name : str
             Data resource name to be requested.
         params : dict (optional)
             Additional parameters to be sent along the query for filtering, sorting,... (default : empty dict).
@@ -228,15 +232,17 @@ class PIAPI(object):
         results : JSON structure
             Data results from the requested resources.
         """
-        if data not in self.data_resources:
+        if resource_name not in self.data_resources:
             raise PIAPIResourceNotFound("Data Resource '%s' not found in the API, check 'data_resources' property "
-                                        "for a list of available data" % data)
+                                        "for a list of available resource_name" % resource_name)
 
-        if check_cache and data in self.cache:
-            return self.cache[data]
+        #  Check the cache to see if the couple (resource + parameters) already exists (using SHA256 hash of resource_name and params)
+        hash_cache = hashlib.sha256(b"%s%s" % (resource_name, str(params))).hexdisgest()
+        if check_cache and hash_cache in self.cache:
+            return self.cache[hash_cache]
 
         #  Get total number of entries for the request
-        response = self.session.get(self._api_structure[data]["url"], params=params)
+        response = self.session.get(self._api_structure[resource_name]["url"], params=params)
         self._parse(response)
         count_entry = response.json()["QueryResponse"]["@counts"]
 
@@ -245,7 +251,7 @@ class PIAPI(object):
         for first_result in range(0, count_entry, paging_size):
             params_copy = copy.deepcopy(params)
             params_copy.update({".full": "true", "firstResult": first_result, "maxResults": paging_size})
-            paging_requests.append(grequests.get(self._data_resources[data], session=self.session, params=params_copy, verify=self.verify))
+            paging_requests.append(grequests.get(self._data_resources[resource_name], session=self.session, params=params_copy, verify=self.verify))
 
         #  Create chunks from the previous list of requests to avoid rate limiting (we hold between each chunk)
         chunk_requests = [paging_requests[x:x+concurrent_requests] for x in range(0, len(paging_requests), concurrent_requests)]
@@ -261,30 +267,31 @@ class PIAPI(object):
         for response in responses:
             response_json = self._parse(response)
             results.append(response_json["QueryResponse"])
+        self.cache[hash_cache] = results
         return results
 
-    def request_action(self, action, payload=None):
+    def request_action(self, resource_name, payload=None):
         """
-        Request an action resource from the REST API.
+        Request an resource_name resource from the REST API.
 
         Parameters
         ----------
-        action : str
+        resource_name : str
             Action resource to be requested
         payload : dict (optional)
-            JSON payload to be sent along the action request (default : empty dict)
+            JSON payload to be sent along the resource_name request (default : empty dict)
 
         Returns
         -------
         results : JSON structure
             Data results from the requested resources.
         """
-        if action not in self.action_resources:
+        if resource_name not in self.action_resources:
             raise PIAPIResourceNotFound("Action Resource '%s' not found in the API, check 'action_resources' property "
-                                        "for a list of available actions" % action)
+                                        "for a list of available actions" % resource_name)
 
-        method = self._action_resources[action]["method"]
-        url = self._action_resources[action]["url"]
+        method = self._action_resources[resource_name]["method"]
+        url = self._action_resources[resource_name]["url"]
         response = self.session.request(method, url, data=payload, verify=self.verify)
         return self._parse(response)
 
@@ -304,8 +311,3 @@ class PIAPI(object):
         elif resource in self._action_resources:
             return self.request_action(resource, data)
 
-
-if __name__ == "__main__":
-    """
-    """
-    pass
