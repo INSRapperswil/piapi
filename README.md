@@ -37,7 +37,7 @@ Basic Usage
 
 The following code resumes all functionalities of the *PIAPI* class.
 
-```
+```python
 from piapi import PIAPI
 
 api = PIAPI("https://pi-server/", "username" , "password")
