@@ -85,20 +85,20 @@ Some REST API call can be extensively long, depending on what you want to retrie
 For that matter, the PIAPI class implements a caching mechanism for data resources only. When calling the request method for
 the same couple resource+parameters more than once, the method will return the already stored result instead of running the request again.
 
-```
-    api = PIAPI("https://pi-server/", "username" , "password")
+```python
+api = PIAPI("https://pi-server/", "username" , "password")
 
-    # This request will be run against the REST API (could take a long time)
-    api.request("Clients", params={"connectionType": "LIGHTWEIGHTWIRELESS"})
+# This request will be run against the REST API (could take a long time)
+api.request("Clients", params={"connectionType": "LIGHTWEIGHTWIRELESS"})
 
-    # This request will comes directly from the cache PIAPI class (faster return of data)
-    api.request("Clients", params={"connectionType": "LIGHTWEIGHTWIRELESS"})
+# This request will comes directly from the cache PIAPI class (faster return of data)
+api.request("Clients", params={"connectionType": "LIGHTWEIGHTWIRELESS"})
 ```
 
 You can explicitly avoid using the cache by setting the *check\_cache* argument to *False* in the request method.
 
-```
-    api.request("Clients", params={"connectionType": "LIGHTWEIGHTWIRELESS"}, check_cache=False)
+```python
+api.request("Clients", params={"connectionType": "LIGHTWEIGHTWIRELESS"}, check_cache=False)
 ```
 
 API SSL feature
@@ -108,8 +108,8 @@ The Cisco Prime Infrastructure API is only accessible trough HTTP over SSL (HTTP
 By default the PIAPI class verifies the server’s SSL certificate. 
 You can disable this behaviour by setting the *verify* argument of the PIAPI constructor to False.
 
-```
-    api = PIAPI("https://pi-server/", "username" , "password", verify=False)
+```python
+api = PIAPI("https://pi-server/", "username" , "password", verify=False)
 ```    
 
 API Timeout handling
@@ -119,7 +119,7 @@ The Cisco Prime Infrastructure API can be really slow. The default request timeo
 this is usefull for some REST Call for long job reporting. To reduce this timeout simply use the
 *timeout* parameters of the request method (seconds as metric).
 
-```
-    api = PIAPI("https://pi-server/", "username" , "password", verify=False)
-    api.request("MyNotSoLongAction", timeout=20)
+```python
+api = PIAPI("https://pi-server/", "username" , "password", verify=False)
+api.request("MyNotSoLongAction", timeout=20)
 ```
