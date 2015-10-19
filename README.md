@@ -22,11 +22,10 @@ Prime Infrastructure Network Monitoring/Configuration solution exposes a classic
 The resources are of 2 types:
 
 -   **Data** resources: exposes several statistics/metric of the network and often requested using HTTP GET (e.g. client summary, alarms,…)
--   **Action** resources: exposes several services to modify the configuration of the NMS/network and often used with HTTP POST, PUT
-    and DELETE
+-   **Action** resources: exposes several services to modify the configuration of the NMS/network and often used with HTTP POST, PUT and DELETE
 
 Check the Cisco Prime Infrastructure REST API documentation available at
-<https://%7Bpi-server%7D/webacs/api/v1/>
+<https://{pi-server}/webacs/api/v1/>
 
 Note that piapi library is only interacting with the REST API using JSON structure.
 
