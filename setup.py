@@ -29,5 +29,13 @@ setup(
     author='maximumG',
     author_email='',
     description='Cisco Prime Infrastructure REST API for python',
-    long_description=__doc__
+    long_description=__doc__,
+    classifiers=[
+        "Environment :: Web Environment",
+        "Intended Audience :: Developers",
+        "License :: OSI Approved :: Apache Software License",
+        "Programming Language :: Python",
+        "Topic :: Internet :: WWW/HTTP :: Dynamic Content",
+        "Topic :: Software Development :: Libraries :: Python Modules"
+    ]
 )
