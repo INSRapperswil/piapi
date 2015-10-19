@@ -66,7 +66,7 @@ requests). All requests will return the response as JSON structure.
 Also note that the requests for data resource always returns a detailed JSON structure and not the summary one.
 
 Rate Limiting
-=============
+-------------
 
 The Cisco Prime API is using rate limiting features to protect the server from request’s overloading. 
 This means that the API is restricting requests from a user inside a window of time.
@@ -80,7 +80,7 @@ To ‘bypass’ and embrace this rate limiting feature, the *request* method can
 Check the Cisco Prime Infrastructure REST API documentation to known more about the rate limiting feature and how it can be tuned internally.
 
 PIAPI Caching feature
-=====================
+---------------------
 
 Some REST API call can be extensively long, depending on what you want to retrieve. 
 For that matter, the PIAPI class implements a caching mechanism for data resources only. When calling the request method for
@@ -103,7 +103,7 @@ You can explicitly avoid using the cache by setting the *check\_cache* argument 
 ```
 
 API SSL feature
-===============
+---------------
 
 The Cisco Prime Infrastructure API is only accessible trough HTTP over SSL (HTTPS) connections. 
 By default the PIAPI class verifies the server’s SSL certificate. 
@@ -114,7 +114,7 @@ You can disable this behaviour by setting the *verify* argument of the PIAPI con
 ```    
 
 API Timeout handling
-====================
+--------------------
 
 The Cisco Prime Infrastructure API can be really slow. The default request timeout is set to 300 seconds (5min);
 this is usefull for some REST Call for long job reporting. To reduce this timeout simply use the
