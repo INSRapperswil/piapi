@@ -38,20 +38,20 @@ Basic Usage
 The following code resumes all functionalities of the *PIAPI* class.
 
 ```
-    from piapi import PIAPI
-    
-    api = PIAPI("https://pi-server/", "username" , "password")
-    
-    api.resources
-    api.data_resources
-    api.action_resources
-    
-    #  Request a Data resource from the API
-    api.request("Clients", params={"connectionType": "LIGHTWEIGHTWIRELESS"})
-    
-    #  Request a Action resource from the API
-    to_delete = {"deviceDeleteCandidates": {"ipAddresses": {"ipAddress": "1.1.1.1"}}}
-    api.request("deleteDevices", data=to_delete)
+from piapi import PIAPI
+
+api = PIAPI("https://pi-server/", "username" , "password")
+
+api.resources
+api.data_resources
+api.action_resources
+
+#  Request a Data resource from the API
+api.request("Clients", params={"connectionType": "LIGHTWEIGHTWIRELESS"})
+
+#  Request a Action resource from the API
+to_delete = {"deviceDeleteCandidates": {"ipAddresses": {"ipAddress": "1.1.1.1"}}}
+api.request("deleteDevices", data=to_delete)
 ```
 
 We can request several properties from the class such as *resources*, *data\_resources*, *action\_resources*. 
