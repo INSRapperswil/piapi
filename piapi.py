@@ -12,13 +12,13 @@
 #   See the License for the specific language governing permissions and
 #   limitations under the License.
 """
-piapi module stands for (Cisco) **P**rime **I**nfrastructure **API**.
+piapi module stands for (Cisco) Prime Infrastructure API.
 The module implements the PIAPI class which helps interacting with the Cisco Prime Infrastructure REST API using
 simple methods that can either request data or request an action.
 
 The Cisco Prime Infrastructure API is a REST API which exposes several resources that can be of 2 types:
-* **Data** resources: expose some data collected by the software which can be retrieved (e.g: client summary).
-* **Action** resources: expose some action that can modify the configuration of the software (e.g: modify/update an Access Point)
+    * Data resources: expose some data collected by the software which can be retrieved (e.g: client summary).
+    * Action resources: expose some action that can modify the configuration of the software (e.g: modify/update an Access Point)
 
 The REST API is applying request rate limiting to avoid server's overloading. To bypass this limitation, especially
 when requesting data resources, the PIAPI uses multithreading requests (grequests library) with an hold time between
@@ -119,7 +119,7 @@ class PIAPI(object):
 
         # Action resources holds all possible service resources with keys as service name
         # and hold the HTTP method + full url to request the service.
-        self._action_resources = collections.defaultdict(default_factory=lambda: {"method": None, "url": None})
+        self._action_resources = {}
         # Data resources holds all possible data resources with key as service name and value as full url access.
         self._data_resources = {}
 
@@ -144,7 +144,8 @@ class PIAPI(object):
         """
         if response.status_code == 200:
             response_json = response.json()
-            if "QueryResponse" in response_json and response_json["QueryResponse"]["count"] == 0:
+            if "queryResponse" in response_json and "@count" in response_json["queryResponse"]\
+                    and response_json["queryResponse"]["@count"] == 0:
                 raise PIAPICountError("No result found for the query %s" % response.url)
             return response_json
         elif response.status_code == 302:
@@ -185,10 +186,13 @@ class PIAPI(object):
         if self._data_resources:
             return self._data_resources.keys()
 
-        data_resources_url = urlparse.urljoin(self.base_url, "data/.json")
-        response = self.session.get(data_resources_url)
+        data_resources_url = urlparse.urljoin(self.base_url, "data.json")
+        response = self.session.get(data_resources_url, verify=self.verify)
         response_json = self._parse(response)
-        #  TODO : parse the structure as JSON
+        for entry in response_json["queryResponse"]["entityType"]:
+            self._data_resources[entry["$"]] = "%s.json" % entry["@url"]
+
+        return self._data_resources.keys()
 
     @property
     def action_resources(self):
@@ -199,9 +203,12 @@ class PIAPI(object):
             return self._action_resources.keys()
 
         action_resources_url = urlparse.urljoin(self.base_url, "op.json")
-        response = self.session.get(action_resources_url)
+        response = self.session.get(action_resources_url, verify=self.verify)
         response_json = self._parse(response)
-        #  TODO : parse the structure as JSON
+        for entry in response_json["queryResponse"]["operation"]:
+            self._action_resources[entry["$"]] = {"method": entry["@httpMethod"], "url": urlparse.urljoin(self.base_url, entry["@path"])}
+
+        return self._action_resources.keys()
 
     def request_data(self, resource_name, params={}, check_cache=True, paging_size=DEFAULT_PAGE_SIZE, concurrent_requests=DEFAULT_CONCURRENT_REQUEST, hold=DEFAULT_HOLD_TIME):
         """
@@ -237,14 +244,14 @@ class PIAPI(object):
                                         "for a list of available resource_name" % resource_name)
 
         #  Check the cache to see if the couple (resource + parameters) already exists (using SHA256 hash of resource_name and params)
-        hash_cache = hashlib.sha256(b"%s%s" % (resource_name, str(params))).hexdisgest()
+        hash_cache = hashlib.sha256(b"%s%s" % (resource_name, params)).hexdigest()
         if check_cache and hash_cache in self.cache:
             return self.cache[hash_cache]
 
         #  Get total number of entries for the request
-        response = self.session.get(self._api_structure[resource_name]["url"], params=params)
+        response = self.session.get(self._data_resources[resource_name], params=params)
         self._parse(response)
-        count_entry = response.json()["QueryResponse"]["@counts"]
+        count_entry = int(response.json()["queryResponse"]["@count"])
 
         #  Create the necessary requests with paging to avoid rate limiting
         paging_requests = []
@@ -259,14 +266,14 @@ class PIAPI(object):
         #  Bulk query the chunk pages by waiting between each chunk to avoid rate limiting
         responses = []
         for chunk_request in chunk_requests:
-            responses.append(grequests.map(chunk_request))
+            responses += grequests.map(chunk_request)
             time.sleep(hold)
 
         #  Parse the results of the previous queries
         results = []
         for response in responses:
             response_json = self._parse(response)
-            results.append(response_json["QueryResponse"])
+            results += response_json["queryResponse"]["entity"]
         self.cache[hash_cache] = results
         return results
 
@@ -295,7 +302,7 @@ class PIAPI(object):
         response = self.session.request(method, url, data=payload, verify=self.verify)
         return self._parse(response)
 
-    def request(self, resource, data=None, params=None, check_cache=True, paging_size=DEFAULT_PAGE_SIZE,
+    def request(self, resource, data={}, params={}, check_cache=True, paging_size=DEFAULT_PAGE_SIZE,
                 concurrent_requests=DEFAULT_CONCURRENT_REQUEST, hold=DEFAULT_HOLD_TIME):
         """
         Generic request which for either data or action resources. The parameters correspond to the ones from
@@ -306,8 +313,8 @@ class PIAPI(object):
         results : JSON structure
             Data results from the requested resources.
         """
-        if resource in self._data_resources:
+        if resource in self.data_resources:
             return self.request_data(resource, params, check_cache, paging_size, concurrent_requests, hold)
-        elif resource in self._action_resources:
+        elif resource in self.action_resources:
             return self.request_action(resource, data)
 
