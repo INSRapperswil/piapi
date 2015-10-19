@@ -31,7 +31,6 @@ Please check your Cisco Prime REST API available at http://{server-name}/webacs/
 """
 
 import urlparse
-import collections
 import time
 import copy
 import hashlib
@@ -52,6 +51,10 @@ DEFAULT_PAGE_SIZE = 1000
 Default hold time in second to wait between group of concurrent request to avoid rate timiting (check *Rate Limiting* of the API)
 """
 DEFAULT_HOLD_TIME = 1
+"""
+Default time in second to wait for a response fomr the REST API
+"""
+DEFAULT_REQUEST_TIMEOUT = 300
 """
 Default base URI of the Prime API
 """
@@ -210,7 +213,7 @@ class PIAPI(object):
 
         return self._action_resources.keys()
 
-    def request_data(self, resource_name, params={}, check_cache=True, paging_size=DEFAULT_PAGE_SIZE, concurrent_requests=DEFAULT_CONCURRENT_REQUEST, hold=DEFAULT_HOLD_TIME):
+    def request_data(self, resource_name, params={}, check_cache=True, timeout=DEFAULT_REQUEST_TIMEOUT, paging_size=DEFAULT_PAGE_SIZE, concurrent_requests=DEFAULT_CONCURRENT_REQUEST, hold=DEFAULT_HOLD_TIME):
         """
         Request a resource_name resource from the REST API. The request can be tuned with filtering, sorting options.
         Check the REST API documentation for available filters by resource.
@@ -227,6 +230,8 @@ class PIAPI(object):
             Additional parameters to be sent along the query for filtering, sorting,... (default : empty dict).
         check_cache : bool (optional)
             Whether or not to check the cache instead of performing a call against the REST API.
+        timeout : int (optional)
+            Time to wait for a response from the REST API (default : piapi.DEFAULT_REQUEST_TIMEOUT)
         paging_size : int (optional)
             Number of entries to include per page (default : piapi.DEFAULT_PAGE_SIZE).
         concurrent_requests : int (optional)
@@ -249,7 +254,7 @@ class PIAPI(object):
             return self.cache[hash_cache]
 
         #  Get total number of entries for the request
-        response = self.session.get(self._data_resources[resource_name], params=params)
+        response = self.session.get(self._data_resources[resource_name], params=params, timeout=timeout)
         self._parse(response)
         count_entry = int(response.json()["queryResponse"]["@count"])
 
@@ -258,7 +263,7 @@ class PIAPI(object):
         for first_result in range(0, count_entry, paging_size):
             params_copy = copy.deepcopy(params)
             params_copy.update({".full": "true", "firstResult": first_result, "maxResults": paging_size})
-            paging_requests.append(grequests.get(self._data_resources[resource_name], session=self.session, params=params_copy, verify=self.verify))
+            paging_requests.append(grequests.get(self._data_resources[resource_name], session=self.session, params=params_copy, verify=self.verify, timeout=timeout))
 
         #  Create chunks from the previous list of requests to avoid rate limiting (we hold between each chunk)
         chunk_requests = [paging_requests[x:x+concurrent_requests] for x in range(0, len(paging_requests), concurrent_requests)]
@@ -277,7 +282,7 @@ class PIAPI(object):
         self.cache[hash_cache] = results
         return results
 
-    def request_action(self, resource_name, payload=None):
+    def request_action(self, resource_name, payload=None, timeout=DEFAULT_REQUEST_TIMEOUT):
         """
         Request an resource_name resource from the REST API.
 
@@ -287,6 +292,8 @@ class PIAPI(object):
             Action resource to be requested
         payload : dict (optional)
             JSON payload to be sent along the resource_name request (default : empty dict)
+        timeout : int (optional)
+            Time to wait for a response from the REST API (default : piapi.DEFAULT_REQUEST_TIMEOUT)
 
         Returns
         -------
@@ -299,10 +306,10 @@ class PIAPI(object):
 
         method = self._action_resources[resource_name]["method"]
         url = self._action_resources[resource_name]["url"]
-        response = self.session.request(method, url, data=payload, verify=self.verify)
+        response = self.session.request(method, url, data=payload, verify=self.verify, timeout=timeout)
         return self._parse(response)
 
-    def request(self, resource, data={}, params={}, check_cache=True, paging_size=DEFAULT_PAGE_SIZE,
+    def request(self, resource, data={}, params={}, check_cache=True, timeout=DEFAULT_REQUEST_TIMEOUT, paging_size=DEFAULT_PAGE_SIZE,
                 concurrent_requests=DEFAULT_CONCURRENT_REQUEST, hold=DEFAULT_HOLD_TIME):
         """
         Generic request which for either data or action resources. The parameters correspond to the ones from
@@ -314,7 +321,7 @@ class PIAPI(object):
             Data results from the requested resources.
         """
         if resource in self.data_resources:
-            return self.request_data(resource, params, check_cache, paging_size, concurrent_requests, hold)
+            return self.request_data(resource, params, check_cache, timeout, paging_size, concurrent_requests, hold)
         elif resource in self.action_resources:
-            return self.request_action(resource, data)
+            return self.request_action(resource, data, timeout)
 

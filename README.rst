@@ -11,7 +11,7 @@ Installation
 
     pip install piapi
 
-or::
+or ::
 
     pip install https://github.com/maximumG/piapi/archive/master.zip
 
@@ -113,3 +113,14 @@ constructor to False.
 
     api = PIAPI("https://pi-server/", "username" , "password", verify=False)
 
+API Timeout handling
+--------------------
+
+The Cisco Prime Infrastructure API can be really slow. The default request timeout is set to 300 seconds (5min); this
+is usefull for some REST Call for long job reporting. To reduce this timeout simply use the *timeout* parameters of
+the request method (seconds as metric).
+
+::
+
+    api = PIAPI("https://pi-server/", "username" , "password", verify=False)
+    api.request("MyNotSoLongAction", timeout=20)
