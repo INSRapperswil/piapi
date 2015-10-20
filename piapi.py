@@ -130,6 +130,11 @@ class PIAPI(object):
         self.session.auth = requests.auth.HTTPBasicAuth(username, password)
         self.session.keep_alive = False  # Disable HTTP keep_alive as advised by the API documentation
 
+        # Don't print warning message from request if not wanted
+        if not self.verify:
+            import warnings
+            warnings.filterwarnings("ignore")
+
     def _parse(self, response):
         """
         Parse a requests.Response object to check for potential errors using the HTTP status code.
@@ -147,9 +152,6 @@ class PIAPI(object):
         """
         if response.status_code == 200:
             response_json = response.json()
-            if "queryResponse" in response_json and "@count" in response_json["queryResponse"]\
-                    and response_json["queryResponse"]["@count"] == 0:
-                raise PIAPICountError("No result found for the query %s" % response.url)
             return response_json
         elif response.status_code == 302:
             raise PIAPIRequestError("Incorrect credentials provided")
@@ -257,6 +259,8 @@ class PIAPI(object):
         response = self.session.get(self._data_resources[resource_name], params=params, timeout=timeout)
         self._parse(response)
         count_entry = int(response.json()["queryResponse"]["@count"])
+        if count_entry <= 0:
+            raise PIAPICountError("No result found for the query %s with params %s" % (response.url, params))
 
         #  Create the necessary requests with paging to avoid rate limiting
         paging_requests = []
@@ -324,4 +328,15 @@ class PIAPI(object):
             return self.request_data(resource, params, check_cache, timeout, paging_size, concurrent_requests, hold)
         elif resource in self.action_resources:
             return self.request_action(resource, data, timeout)
+
+    def __getattr__(self, item):
+        """
+        Magic method used to render all resources as class attribute
+
+        item : str
+            Name of the resource to be found
+        """
+        if item in self.resources:
+            return self.request(item)
+        raise AttributeError("'%s' resource not found in the REST API" % item)
 
