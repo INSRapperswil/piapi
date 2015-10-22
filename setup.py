@@ -14,7 +14,7 @@ chunk of requests. Please check the documentation to knowns more about rate limi
 Also note that the piapi module only works with the JSON structure exposed by the REST API. The module doesn't support
 the default XML structure.
 
-Please check your Cisco Prime REST API available at http://{server-name}/webacs/api/v1/
+Please check your Cisco Prime REST API available at https://{server-name}/webacs/api/v1/
 """
 from setuptools import setup
 
@@ -25,11 +25,13 @@ setup(
     requires=['requests', 'grequests'],
     platforms='any',
     url='https://github.com/maximumG/piapi',
+    download_url='https://github.com/maximumG/piapi/tarball/0.1',
     license='Apache',
     author='maximumG',
     author_email='',
     description='Cisco Prime Infrastructure REST API for python',
     long_description=__doc__,
+    keywords=["Cisco", "Prime", "API", "REST", "request"],
     classifiers=[
         "Environment :: Web Environment",
         "Intended Audience :: Developers",
