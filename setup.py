@@ -28,7 +28,7 @@ setup(
     download_url='https://github.com/maximumG/piapi/tarball/0.1',
     license='Apache',
     author='maximumG',
-    author_email='',
+    author_email='mgerges@stubbynet.com',
     description='Cisco Prime Infrastructure REST API for python',
     long_description=__doc__,
     keywords=["Cisco", "Prime", "API", "REST", "request"],
