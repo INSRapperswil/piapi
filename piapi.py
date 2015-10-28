@@ -18,7 +18,7 @@ simple methods that can either request data or request an action.
 
 The Cisco Prime Infrastructure API is a REST API which exposes several resources that can be of 2 types:
     * Data resources: expose some data collected by the software which can be retrieved (e.g: client summary).
-    * Action resources: expose some action that can modify the configuration of the software (e.g: modify/update an Access Point)
+    * Service resources: expose some services that can modify the configuration of the software (e.g: modify/update an Access Point)
 
 The REST API is applying request rate limiting to avoid server's overloading. To bypass this limitation, especially
 when requesting data resources, the PIAPI uses multithreading requests (grequests library) with an hold time between
@@ -120,9 +120,9 @@ class PIAPI(object):
         self.verify = verify
         self.cache = {}  # Caching is used for data resource with keys as checksum of resource's name+params from the request
 
-        # Action resources holds all possible service resources with keys as service name
+        # Service resources holds all possible service resources with keys as service name
         # and hold the HTTP method + full url to request the service.
-        self._action_resources = {}
+        self._service_resources = {}
         # Data resources holds all possible data resources with key as service name and value as full url access.
         self._data_resources = {}
 
@@ -181,7 +181,7 @@ class PIAPI(object):
         """
         List of all available resources to be requested. This includes actions and data resources.
         """
-        return self.data_resources + self.action_resources
+        return self.data_resources + self.service_resources
 
     @property
     def data_resources(self):
@@ -200,24 +200,24 @@ class PIAPI(object):
         return self._data_resources.keys()
 
     @property
-    def action_resources(self):
+    def service_resources(self):
         """
-        List of all available action resources, meaning management actions.
+        List of all available service resources, meaning resources that modify the NMS.
         """
-        if self._action_resources:
-            return self._action_resources.keys()
+        if self._service_resources:
+            return self._service_resources.keys()
 
         action_resources_url = urlparse.urljoin(self.base_url, "op.json")
         response = self.session.get(action_resources_url, verify=self.verify)
         response_json = self._parse(response)
         for entry in response_json["queryResponse"]["operation"]:
-            self._action_resources[entry["$"]] = {"method": entry["@httpMethod"], "url": urlparse.urljoin(self.base_url, "op/%s.json" % entry["@path"])}
+            self._service_resources[entry["$"]] = {"method": entry["@httpMethod"], "url": urlparse.urljoin(self.base_url, "op/%s.json" % entry["@path"])}
 
-        return self._action_resources.keys()
+        return self._service_resources.keys()
 
     def request_data(self, resource_name, params={}, check_cache=True, timeout=DEFAULT_REQUEST_TIMEOUT, paging_size=DEFAULT_PAGE_SIZE, concurrent_requests=DEFAULT_CONCURRENT_REQUEST, hold=DEFAULT_HOLD_TIME):
         """
-        Request a resource_name resource from the REST API. The request can be tuned with filtering, sorting options.
+        Request a 'resource_name' resource from the REST API. The request can be tuned with filtering, sorting options.
         Check the REST API documentation for available filters by resource.
 
         To bypass rate limiting feature of the API you can tune paging_size, concurrent_requests and hold_time parameters.
@@ -286,9 +286,9 @@ class PIAPI(object):
         self.cache[hash_cache] = results
         return results
 
-    def request_action(self, resource_name, params=None, timeout=DEFAULT_REQUEST_TIMEOUT):
+    def request_service(self, resource_name, params=None, timeout=DEFAULT_REQUEST_TIMEOUT):
         """
-        Request a resource from the REST API.
+        Request a service resource from the REST API.
 
         Parameters
         ----------
@@ -304,12 +304,13 @@ class PIAPI(object):
         results : JSON structure
             Data results from the requested resources.
         """
-        if resource_name not in self.action_resources:
-            raise PIAPIResourceNotFound("Action Resource '%s' not found in the API, check 'action_resources' property "
+        if resource_name not in self.service_resources:
+            raise PIAPIResourceNotFound("Service Resource '%s' not found in the API, check 'action_resources' property "
                                         "for a list of available actions" % resource_name)
 
-        method = self._action_resources[resource_name]["method"]
-        url = self._action_resources[resource_name]["url"]
+        method = self._service_resources[resource_name]["method"]
+        url = self._service_resources[resource_name]["url"]
+        # if the HTTP method is 'GET', use the params args of request, otherwise use data (POST, DELETE, PUT)
         if method == "GET":
             response = self.session.request(method, url, params=params, verify=self.verify, timeout=timeout)
         else:
@@ -319,8 +320,25 @@ class PIAPI(object):
     def request(self, resource, params={}, check_cache=True, timeout=DEFAULT_REQUEST_TIMEOUT, paging_size=DEFAULT_PAGE_SIZE,
                 concurrent_requests=DEFAULT_CONCURRENT_REQUEST, hold=DEFAULT_HOLD_TIME):
         """
-        Generic request which for either data or action resources. The parameters correspond to the ones from
+        Generic request for either data or services resources. The parameters correspond to the ones from
         *PIAPI.request_data* or *PIAPI.request_action*.
+
+        Parameters
+        ----------
+        resource : str
+            Action resource to be requested
+        params : dict (optional)
+            JSON parameters to be sent along the resource_name request (default : empty dict)
+        check_cache : bool (optional)
+            Whether or not to check the cache instead of performing a call against the REST API.
+        timeout : int (optional)
+            Time to wait for a response from the REST API (default : piapi.DEFAULT_REQUEST_TIMEOUT)
+        paging_size : int (optional)
+            Number of entries to include per page (default : piapi.DEFAULT_PAGE_SIZE).
+        concurrent_requests : int (optional)
+            Number of parallel requests to make (default : piapi.DEFAULT_CONCURRENT_REQUEST).
+        hold : int (optional)
+            Hold time in second to wait between chunk of concurrent requests to avoid rate limiting (default : piapi.DEFAULT_HOLD_TIME).
 
         Returns
         -------
@@ -329,8 +347,8 @@ class PIAPI(object):
         """
         if resource in self.data_resources:
             return self.request_data(resource, params, check_cache, timeout, paging_size, concurrent_requests, hold)
-        elif resource in self.action_resources:
-            return self.request_action(resource, params, timeout)
+        elif resource in self.service_resources:
+            return self.request_service(resource, params, timeout)
 
     def __getattr__(self, item):
         """

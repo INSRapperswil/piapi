@@ -5,7 +5,7 @@ simple methods that can either request data or request an action.
 
 The Cisco Prime Infrastructure API is a REST API which exposes several resources that can be of 2 types:
     * Data resources: expose some data collected by the software which can be retrieved (e.g: client summary).
-    * Action resources: expose some action that can modify the configuration of the software (e.g: modify/update an Access Point)
+    * Service resources: expose some service that can modify the configuration of the software (e.g: modify/update an Access Point)
 
 The REST API is applying request rate limiting to avoid server's overloading. To bypass this limitation, especially
 when requesting data resources, the PIAPI uses multithreading requests (grequests library) with an hold time between
@@ -20,7 +20,7 @@ from setuptools import setup
 
 setup(
     name='piapi',
-    version='0.1.1',
+    version='0.1.2',
     py_modules=['piapi'],
     requires=['requests', 'grequests'],
     platforms='any',

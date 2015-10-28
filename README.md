@@ -22,7 +22,7 @@ Prime Infrastructure Network Monitoring/Configuration solution exposes a classic
 The resources are of 2 types:
 
 -   **Data** resources: exposes several statistics/metric of the network and often requested using HTTP GET (e.g. client summary, alarms,…)
--   **Action** resources: exposes several services to modify the configuration of the NMS/network and often used with HTTP POST, PUT and DELETE
+-   **Service** resources: exposes several services to modify the configuration of the NMS/network and often used with HTTP POST, PUT and DELETE
 
 Check the Cisco Prime Infrastructure REST API documentation available at
 <https://{pi-server}/webacs/api/v1/>
@@ -51,7 +51,7 @@ api.request("Clients", params={"connectionType": "LIGHTWEIGHTWIRELESS"})
 
 #  Request a Action resource from the API
 to_delete = {"deviceDeleteCandidates": {"ipAddresses": {"ipAddress": "1.1.1.1"}}}
-api.request("deleteDevices", data=to_delete)
+api.request("deleteDevices", params=to_delete)
 ```
 
 We can request several properties from the class such as *resources*, *data\_resources*, *action\_resources*. 
@@ -59,10 +59,10 @@ These properties are list of available resources that are exposed from the REST 
 The resources can used after when calling the API with the *request* method.
 
 The *request* method is the generic entry point to interact with the REST API. 
-It needs to be called using the resource’s name as required argument and some *params* (data requests) or *payload* (action
-requests). All requests will return the response as JSON structure.
+It needs to be called using the resource’s name as required argument and some *params*. 
+All requests will return the response as JSON structure.
 
-Also note that the requests for data resource always returns a detailed JSON structure and not the summary one.
+Also note that the requests for data resources always returns a detailed JSON structure and not the summary one.
 
 Rate Limiting
 -------------
