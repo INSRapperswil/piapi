@@ -211,7 +211,7 @@ class PIAPI(object):
         response = self.session.get(action_resources_url, verify=self.verify)
         response_json = self._parse(response)
         for entry in response_json["queryResponse"]["operation"]:
-            self._action_resources[entry["$"]] = {"method": entry["@httpMethod"], "url": urlparse.urljoin(self.base_url, entry["@path"])}
+            self._action_resources[entry["$"]] = {"method": entry["@httpMethod"], "url": urlparse.urljoin(self.base_url, "op/%s" % entry["@path"])}
 
         return self._action_resources.keys()
 
