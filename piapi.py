@@ -286,16 +286,16 @@ class PIAPI(object):
         self.cache[hash_cache] = results
         return results
 
-    def request_action(self, resource_name, payload=None, timeout=DEFAULT_REQUEST_TIMEOUT):
+    def request_action(self, resource_name, params=None, timeout=DEFAULT_REQUEST_TIMEOUT):
         """
-        Request an resource_name resource from the REST API.
+        Request a resource from the REST API.
 
         Parameters
         ----------
         resource_name : str
             Action resource to be requested
-        payload : dict (optional)
-            JSON payload to be sent along the resource_name request (default : empty dict)
+        params : dict (optional)
+            JSON parameters to be sent along the resource_name request (default : empty dict)
         timeout : int (optional)
             Time to wait for a response from the REST API (default : piapi.DEFAULT_REQUEST_TIMEOUT)
 
@@ -310,10 +310,13 @@ class PIAPI(object):
 
         method = self._action_resources[resource_name]["method"]
         url = self._action_resources[resource_name]["url"]
-        response = self.session.request(method, url, data=payload, verify=self.verify, timeout=timeout)
+        if method == "GET":
+            response = self.session.request(method, url, params=params, verify=self.verify, timeout=timeout)
+        else:
+            response = self.session.request(method, url, data=params, verify=self.verify, timeout=timeout)
         return self._parse(response)
 
-    def request(self, resource, data={}, params={}, check_cache=True, timeout=DEFAULT_REQUEST_TIMEOUT, paging_size=DEFAULT_PAGE_SIZE,
+    def request(self, resource, params={}, check_cache=True, timeout=DEFAULT_REQUEST_TIMEOUT, paging_size=DEFAULT_PAGE_SIZE,
                 concurrent_requests=DEFAULT_CONCURRENT_REQUEST, hold=DEFAULT_HOLD_TIME):
         """
         Generic request which for either data or action resources. The parameters correspond to the ones from
@@ -327,7 +330,7 @@ class PIAPI(object):
         if resource in self.data_resources:
             return self.request_data(resource, params, check_cache, timeout, paging_size, concurrent_requests, hold)
         elif resource in self.action_resources:
-            return self.request_action(resource, data, timeout)
+            return self.request_action(resource, params, timeout)
 
     def __getattr__(self, item):
         """
