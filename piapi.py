@@ -34,10 +34,13 @@ import urlparse
 import time
 import copy
 import hashlib
+import threading
+import Queue
 
 import requests
 import requests.auth
-import grequests
+
+#import grequests
 
 """
 Default number of concurrent requests (check *Rate Limiting* of the API)
@@ -103,21 +106,24 @@ class PIAPI(object):
     Parameters
     ----------
     url : str
-        The base URL to get access to Cisco Prime Infrastructure (without the URI of the REST API!)
+        The base URL to get access to Cisco Prime Infrastructure (without the URI of the REST API!).
     username : str
-        Username to be used for authentication
+        Username to be used for authentication.
     password : str
-        Password to be used for authentication
+        Password to be used for authentication.
     verify : bool (optional)
-        Whether or not to verify the server's SSL certificate (default: True)
+        Whether or not to verify the server's SSL certificate (default: True).
+    virtual_domain : str (optional)
+        The virtual domain used by all the request. Virtual domain are used as a filter (default: None).
     """
 
-    def __init__(self, url, username, password, verify=True):
+    def __init__(self, url, username, password, verify=True, virtual_domain=None):
         """
         Constructor of the PIAPI class.
         """
         self.base_url = urlparse.urljoin(url, DEFAULT_API_URI)
         self.verify = verify
+        self.virtual_domain = virtual_domain
         self.cache = {}  # Caching is used for data resource with keys as checksum of resource's name+params from the request
 
         # Service resources holds all possible service resources with keys as service name
@@ -156,7 +162,8 @@ class PIAPI(object):
         elif response.status_code == 302:
             raise PIAPIRequestError("Incorrect credentials provided")
         elif response.status_code == 400:
-            raise PIAPIRequestError("Invalid request %s" % response.url)
+            response_json = response.json()
+            raise PIAPIRequestError("Invalid request: %s" % response_json["errorDocument"]["message"])
         elif response.status_code == 401:
             raise PIAPIRequestError("Unauthorized access")
         elif response.status_code == 403:
@@ -175,6 +182,24 @@ class PIAPI(object):
             raise PIAPIRequestError("The servers are up, but overloaded with requests. Try again later (rate limiting)")
         else:
             raise PIAPIRequestError("Unknown Request Error, return code is %s" % response.status_code)
+
+    def _request_wrapper(self, queue, url, params, timeout):
+        """
+        Wrapper to requests used by each thread.
+
+        Parameters
+        ----------
+        queue : Queue.Queue
+            The Queue to write the response from the request in.
+        url : str
+            The URL to be queried.
+        params : dict
+            A dictionary of parameters to pass to the request.
+        timeout : int
+            Timeout to wait for a response to the request.
+        """
+        response = self.session.get(url, params=params, verify=self.verify, timeout=timeout)
+        queue.put(response)
 
     @property
     def resources(self):
@@ -264,10 +289,15 @@ class PIAPI(object):
 
         #  Create the necessary requests with paging to avoid rate limiting
         paging_requests = []
+        queue = Queue.Queue()
         for first_result in range(0, count_entry, paging_size):
             params_copy = copy.deepcopy(params)
             params_copy.update({".full": "true", "firstResult": first_result, "maxResults": paging_size})
-            paging_requests.append(grequests.get(self._data_resources[resource_name], session=self.session, params=params_copy, verify=self.verify, timeout=timeout))
+            #paging_requests.append(grequests.get(self._data_resources[resource_name], session=self.session, params=params_copy, verify=self.verify, timeout=timeout))
+            paging_requests.append(threading.Thread(None, self._request_wrapper, args=(queue,
+                                                                                       self._data_resources[resource_name],
+                                                                                       params,
+                                                                                       timeout)))
 
         #  Create chunks from the previous list of requests to avoid rate limiting (we hold between each chunk)
         chunk_requests = [paging_requests[x:x+concurrent_requests] for x in range(0, len(paging_requests), concurrent_requests)]
@@ -275,7 +305,12 @@ class PIAPI(object):
         #  Bulk query the chunk pages by waiting between each chunk to avoid rate limiting
         responses = []
         for chunk_request in chunk_requests:
-            responses += grequests.map(chunk_request)
+            #responses += grequests.map(chunk_request)
+            for request in chunk_request:
+                request.start()
+            for request in chunk_request:
+                request.join()
+                responses.append(queue.get())
             time.sleep(hold)
 
         #  Parse the results of the previous queries
@@ -317,7 +352,7 @@ class PIAPI(object):
             response = self.session.request(method, url, data=params, verify=self.verify, timeout=timeout)
         return self._parse(response)
 
-    def request(self, resource, params={}, check_cache=True, timeout=DEFAULT_REQUEST_TIMEOUT, paging_size=DEFAULT_PAGE_SIZE,
+    def request(self, resource, params={}, virtual_domain=None, check_cache=True, timeout=DEFAULT_REQUEST_TIMEOUT, paging_size=DEFAULT_PAGE_SIZE,
                 concurrent_requests=DEFAULT_CONCURRENT_REQUEST, hold=DEFAULT_HOLD_TIME):
         """
         Generic request for either data or services resources. The parameters correspond to the ones from
@@ -328,7 +363,9 @@ class PIAPI(object):
         resource : str
             Action resource to be requested
         params : dict (optional)
-            JSON parameters to be sent along the resource_name request (default : empty dict)
+            JSON parameters to be sent along the resource_name request (default : empty dict).
+        virtual_domain : str (optional)
+            Name of the virtual domain to send the request for (default : None).
         check_cache : bool (optional)
             Whether or not to check the cache instead of performing a call against the REST API.
         timeout : int (optional)
@@ -345,6 +382,10 @@ class PIAPI(object):
         results : JSON structure
             Data results from the requested resources.
         """
+        virtual_domain = virtual_domain or self.virtual_domain
+        if virtual_domain:
+            params["_ctx.domain"] = virtual_domain
+
         if resource in self.data_resources:
             return self.request_data(resource, params, check_cache, timeout, paging_size, concurrent_requests, hold)
         elif resource in self.service_resources:

@@ -4,6 +4,23 @@ piapi AKA Prime Infrastructure API
 The piapi library ease the interaction with the Cisco Prime Infrastructure REST API with python. 
 piapi implements a unique class known as **PIAPI** has the unique entry point for all requests made against the API.
 
+Version
+-------
+
+### 0.1.3
+
+-   Add support of Cisco Prime Infrastructure virtual domain.
+-   Skip the *grequests* library for concurrent requests and use *threading* instead (grequests doesn't work with 
+    multiprocessing)
+
+### 0.1.2
+
+-   Major fixes with the request methods.
+
+### 0.1.0
+
+-   Initial release.
+
 Installation
 ------------
 
@@ -123,3 +140,20 @@ this is usefull for some REST Call for long job reporting. To reduce this timeou
 api = PIAPI("https://pi-server/", "username" , "password", verify=False)
 api.request("MyNotSoLongAction", timeout=20)
 ```
+
+Virtual Domain Support
+----------------------
+
+A Virtual Domain consists of a set of devices and/or maps and restricts a user view to information relevant 
+to these managed objects. PIAPI is "virtual domain" aware and it is possible to specify the virtual domain name either
+during the creation of the PIAPI or during each call to the request method.
+
+```python
+api = PIAPI("https://pi-server/", "username" , "password", virtual_domain="root-domain")
+# retrieve clients from the 'root-domain'
+api.request("Clients", params={"connectionType": "LIGHTWEIGHTWIRELESS"})
+# retrieve clients from the 'sub-domain'
+api.request("Clients", params={"connectionType": "LIGHTWEIGHTWIRELESS"}, virtual_domain="sub-domain")
+```
+
+Also note that when changing the virtual domain for one request, the virtual domain is persistent for all next requests.
