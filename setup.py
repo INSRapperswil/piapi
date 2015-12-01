@@ -25,7 +25,7 @@ setup(
     requires=['requests'],
     platforms='any',
     url='https://github.com/maximumG/piapi',
-    download_url='https://github.com/maximumG/piapi/tarball/0.1',
+    download_url='https://github.com/maximumG/piapi/tarball/0.1.3',
     license='Apache',
     author='maximumG',
     author_email='mgerges@stubbynet.com',
