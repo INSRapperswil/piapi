@@ -22,7 +22,7 @@ setup(
     name='piapi',
     version='0.1.3',
     py_modules=['piapi'],
-    requires=['requests', 'grequests'],
+    requires=['requests'],
     platforms='any',
     url='https://github.com/maximumG/piapi',
     download_url='https://github.com/maximumG/piapi/tarball/0.1',
