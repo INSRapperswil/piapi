@@ -296,7 +296,7 @@ class PIAPI(object):
             #paging_requests.append(grequests.get(self._data_resources[resource_name], session=self.session, params=params_copy, verify=self.verify, timeout=timeout))
             paging_requests.append(threading.Thread(None, self._request_wrapper, args=(queue,
                                                                                        self._data_resources[resource_name],
-                                                                                       params,
+                                                                                       params_copy,
                                                                                        timeout)))
 
         #  Create chunks from the previous list of requests to avoid rate limiting (we hold between each chunk)
