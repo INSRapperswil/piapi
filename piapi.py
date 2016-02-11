@@ -292,7 +292,7 @@ class PIAPI(object):
         queue = Queue.Queue()
         for first_result in range(0, count_entry, paging_size):
             params_copy = copy.deepcopy(params)
-            params_copy.update({".full": "true", "firstResult": first_result, "maxResults": paging_size})
+            params_copy.update({".full": "true", ".firstResult": first_result, ".maxResults": paging_size})
             #paging_requests.append(grequests.get(self._data_resources[resource_name], session=self.session, params=params_copy, verify=self.verify, timeout=timeout))
             paging_requests.append(threading.Thread(None, self._request_wrapper, args=(queue,
                                                                                        self._data_resources[resource_name],
