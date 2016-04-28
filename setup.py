@@ -22,7 +22,7 @@ from setuptools import setup
 
 setup(
     name='piapi',
-    version='0.1.3',
+    version='0.1.4',
     py_modules=['piapi'],
     requires=['requests'],
     platforms='any',
