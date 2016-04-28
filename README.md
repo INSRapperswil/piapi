@@ -7,6 +7,10 @@ piapi implements a unique class known as **PIAPI** has the unique entry point fo
 Version
 -------
 
+### 0.1.4
+
+- Fix issue with PUT request and json parameters.
+
 ### 0.1.3
 
 -   Add support of Cisco Prime Infrastructure virtual domain.
