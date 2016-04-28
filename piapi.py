@@ -36,6 +36,7 @@ import copy
 import hashlib
 import threading
 import Queue
+import json
 
 import requests
 import requests.auth
@@ -345,9 +346,12 @@ class PIAPI(object):
 
         method = self._service_resources[resource_name]["method"]
         url = self._service_resources[resource_name]["url"]
+        headers = {'Content-Type':'application/json'}
         # if the HTTP method is 'GET', use the params args of request, otherwise use data (POST, DELETE, PUT)
         if method == "GET":
             response = self.session.request(method, url, params=params, verify=self.verify, timeout=timeout)
+        elif method == "PUT":
+            response = self.session.request(method, url, data=json.dumps(params), headers=headers, verify=self.verify, timeout=timeout)
         else:
             response = self.session.request(method, url, data=params, verify=self.verify, timeout=timeout)
         return self._parse(response)
