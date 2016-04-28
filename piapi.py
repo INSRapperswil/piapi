@@ -135,7 +135,9 @@ class PIAPI(object):
 
         self.session = requests.Session()
         self.session.auth = requests.auth.HTTPBasicAuth(username, password)
-        self.session.keep_alive = False  # Disable HTTP keep_alive as advised by the API documentation
+
+        # Disable HTTP keep_alive as advised by the API documentation
+        self.session.headers['connection'] = 'close'
 
         # Don't print warning message from request if not wanted
         if not self.verify:
