@@ -63,6 +63,7 @@ DEFAULT_REQUEST_TIMEOUT = 300
 Default base URI of the Prime API
 """
 DEFAULT_API_URI = "/webacs/api/v1/"
+DEFAULT_APIv2_URI = "/webacs/api/v2/"
 
 
 class PIAPIError(Exception):
@@ -122,7 +123,10 @@ class PIAPI(object):
         """
         Constructor of the PIAPI class.
         """
-        self.base_url = urlparse.urljoin(url, DEFAULT_API_URI)
+        try:
+            self.base_url = urlparse.urljoin(url, DEFAULT_APIv2_URI)
+        except:
+            self.base_url = urlparse.urljoin(url, DEFAULT_API_URI)
         self.verify = verify
         self.virtual_domain = virtual_domain
         self.cache = {}  # Caching is used for data resource with keys as checksum of resource's name+params from the request
