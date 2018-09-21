@@ -18,6 +18,7 @@ Please check your Cisco Prime REST API available at https://{server-name}/webacs
 
 test modification
 """
+from __future__ import absolute_import
 from setuptools import setup
 
 setup(
@@ -38,8 +39,11 @@ setup(
         "Environment :: Web Environment",
         "Intended Audience :: Developers",
         "License :: OSI Approved :: Apache Software License",
-        "Programming Language :: Python",
+        "Programming Language :: Python :: 3",
         "Topic :: Internet :: WWW/HTTP :: Dynamic Content",
         "Topic :: Software Development :: Libraries :: Python Modules"
-    ]
+    ],
+	install_requires=[
+		'requests', 'six'
+	],
 )
