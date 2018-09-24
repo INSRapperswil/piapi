@@ -7,6 +7,11 @@ piapi implements a unique class known as **PIAPI** has the unique entry point fo
 Version
 -------
 
+### 0.1.5
+- Add support for PRIME v3 API.
+- Conversion to python 3.
+
+
 ### 0.1.4
 
 - Fix issue with PUT request and json parameters.
