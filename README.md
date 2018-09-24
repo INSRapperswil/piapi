@@ -4,6 +4,8 @@ piapi AKA Prime Infrastructure API
 The piapi library ease the interaction with the Cisco Prime Infrastructure REST API with python. 
 piapi implements a unique class known as **PIAPI** has the unique entry point for all requests made against the API.
 
+**[All credit goes to maximumG for piapi](https://github.com/maximumG/piapi)**, any changes after v0.1.4 were implemented by tyler-guy.
+
 Version
 -------
 
@@ -33,10 +35,6 @@ Version
 Installation
 ------------
 
-```shell
-    pip install piapi
-```
-or
 ```shell
     pip install https://github.com/tyler-guy/piapi/archive/python3.zip
 ```
