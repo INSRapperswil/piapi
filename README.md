@@ -38,7 +38,7 @@ Installation
 ```
 or
 ```shell
-    pip install https://github.com/maximumG/piapi/archive/master.zip
+    pip install https://github.com/tyler-guy/piapi/archive/python3.zip
 ```
 
 Cisco Prime Infrastructure REST API
