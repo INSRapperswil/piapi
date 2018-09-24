@@ -64,7 +64,7 @@ DEFAULT_REQUEST_TIMEOUT = 300
 """
 Default base URI of the Prime API
 """
-DEFAULT_API_URI = "/webacs/api/v1/"
+DEFAULT_API_URI = "/webacs/api/v3/"
 
 
 class PIAPIError(Exception):
