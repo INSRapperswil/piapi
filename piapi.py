@@ -281,9 +281,9 @@ class PIAPI(object):
                                         "for a list of available resource_name" % resource_name)
 
         #  Check the cache to see if the couple (resource + parameters) already exists (using SHA256 hash of resource_name and params)
-        hash_cache = hashlib.sha256(b"%s%s" % (resource_name, params)).hexdigest()
-        if check_cache and hash_cache in self.cache:
-            return self.cache[hash_cache]
+        #  hash_cache = hashlib.sha256(b"%s%s" % (resource_name, params)).hexdigest()
+        #   if check_cache and hash_cache in self.cache:
+        #      return self.cache[hash_cache]
 
         #  Get total number of entries for the request
         response = self.session.get(self._data_resources[resource_name], params=params, timeout=timeout)
@@ -323,7 +323,7 @@ class PIAPI(object):
         for response in responses:
             response_json = self._parse(response)
             results += response_json["queryResponse"]["entity"]
-        self.cache[hash_cache] = results
+        #  self.cache[hash_cache] = results
         return results
 
     def request_service(self, resource_name, params=None, timeout=DEFAULT_REQUEST_TIMEOUT):
