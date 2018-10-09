@@ -18,13 +18,13 @@ Please check your Cisco Prime REST API available at https://{server-name}/webacs
 
 test modification
 """
+from __future__ import absolute_import
 from setuptools import setup
 
 setup(
     name='piapi',
     version='0.1.4',
     py_modules=['piapi'],
-    install_requires=['requests>=2.4.0'],
     platforms='any',
     url='https://github.com/maximumG/piapi',
     download_url='https://github.com/maximumG/piapi/tarball/0.1.3',
@@ -38,8 +38,11 @@ setup(
         "Environment :: Web Environment",
         "Intended Audience :: Developers",
         "License :: OSI Approved :: Apache Software License",
-        "Programming Language :: Python",
+        "Programming Language :: Python :: 3",
         "Topic :: Internet :: WWW/HTTP :: Dynamic Content",
         "Topic :: Software Development :: Libraries :: Python Modules"
-    ]
+    ],
+	install_requires=[
+		'requests', 'six'
+	],
 )

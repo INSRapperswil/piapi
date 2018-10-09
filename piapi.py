@@ -30,16 +30,18 @@ the default XML structure.
 Please check your Cisco Prime REST API available at http://{server-name}/webacs/api/v1/
 """
 
-import urlparse
+from __future__ import absolute_import
+import six.moves.urllib.parse
 import time
 import copy
 import hashlib
 import threading
-import Queue
+import six.moves.queue
 import json
 
 import requests
 import requests.auth
+from six.moves import range
 
 #import grequests
 
@@ -62,7 +64,7 @@ DEFAULT_REQUEST_TIMEOUT = 300
 """
 Default base URI of the Prime API
 """
-DEFAULT_API_URI = "/webacs/api/v1/"
+DEFAULT_API_URI = "/webacs/api/v3/"
 
 
 class PIAPIError(Exception):
@@ -122,7 +124,7 @@ class PIAPI(object):
         """
         Constructor of the PIAPI class.
         """
-        self.base_url = urlparse.urljoin(url, DEFAULT_API_URI)
+        self.base_url = six.moves.urllib.parse.urljoin(url, DEFAULT_API_URI)
         self.verify = verify
         self.virtual_domain = virtual_domain
         self.cache = {}  # Caching is used for data resource with keys as checksum of resource's name+params from the request
@@ -217,15 +219,15 @@ class PIAPI(object):
         List of all available data resources, meaning resources that return data.
         """
         if self._data_resources:
-            return self._data_resources.keys()
+            return list(self._data_resources.keys())
 
-        data_resources_url = urlparse.urljoin(self.base_url, "data.json")
+        data_resources_url = six.moves.urllib.parse.urljoin(self.base_url, "data.json")
         response = self.session.get(data_resources_url, verify=self.verify)
         response_json = self._parse(response)
         for entry in response_json["queryResponse"]["entityType"]:
             self._data_resources[entry["$"]] = "%s.json" % entry["@url"]
 
-        return self._data_resources.keys()
+        return list(self._data_resources.keys())
 
     @property
     def service_resources(self):
@@ -233,15 +235,15 @@ class PIAPI(object):
         List of all available service resources, meaning resources that modify the NMS.
         """
         if self._service_resources:
-            return self._service_resources.keys()
+            return list(self._service_resources.keys())
 
-        action_resources_url = urlparse.urljoin(self.base_url, "op.json")
+        action_resources_url = six.moves.urllib.parse.urljoin(self.base_url, "op.json")
         response = self.session.get(action_resources_url, verify=self.verify)
         response_json = self._parse(response)
         for entry in response_json["queryResponse"]["operation"]:
-            self._service_resources[entry["$"]] = {"method": entry["@httpMethod"], "url": urlparse.urljoin(self.base_url, "op/%s.json" % entry["@path"])}
+            self._service_resources[entry["$"]] = {"method": entry["@httpMethod"], "url": six.moves.urllib.parse.urljoin(self.base_url, "op/%s.json" % entry["@path"])}
 
-        return self._service_resources.keys()
+        return list(self._service_resources.keys())
 
     def request_data(self, resource_name, params={}, check_cache=True, timeout=DEFAULT_REQUEST_TIMEOUT, paging_size=DEFAULT_PAGE_SIZE, concurrent_requests=DEFAULT_CONCURRENT_REQUEST, hold=DEFAULT_HOLD_TIME):
         """
@@ -279,9 +281,9 @@ class PIAPI(object):
                                         "for a list of available resource_name" % resource_name)
 
         #  Check the cache to see if the couple (resource + parameters) already exists (using SHA256 hash of resource_name and params)
-        hash_cache = hashlib.sha256(b"%s%s" % (resource_name, params)).hexdigest()
-        if check_cache and hash_cache in self.cache:
-            return self.cache[hash_cache]
+        #  hash_cache = hashlib.sha256(b"%s%s" % (resource_name, params)).hexdigest()
+        #   if check_cache and hash_cache in self.cache:
+        #      return self.cache[hash_cache]
 
         #  Get total number of entries for the request
         response = self.session.get(self._data_resources[resource_name], params=params, timeout=timeout)
@@ -292,7 +294,7 @@ class PIAPI(object):
 
         #  Create the necessary requests with paging to avoid rate limiting
         paging_requests = []
-        queue = Queue.Queue()
+        queue = six.moves.queue.Queue()
         for first_result in range(0, count_entry, paging_size):
             params_copy = copy.deepcopy(params)
             params_copy.update({".full": "true", ".firstResult": first_result, ".maxResults": paging_size})
@@ -321,7 +323,7 @@ class PIAPI(object):
         for response in responses:
             response_json = self._parse(response)
             results += response_json["queryResponse"]["entity"]
-        self.cache[hash_cache] = results
+        #  self.cache[hash_cache] = results
         return results
 
     def request_service(self, resource_name, params=None, timeout=DEFAULT_REQUEST_TIMEOUT):
