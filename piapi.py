@@ -237,8 +237,8 @@ class PIAPI(object):
         if self._service_resources:
             return list(self._service_resources.keys())
 
-        action_resources_url = six.moves.urllib.parse.urljoin(self.base_url, "op.json")
-        response = self.session.get(action_resources_url, verify=self.verify)
+        service_resources_url = six.moves.urllib.parse.urljoin(self.base_url, "op.json")
+        response = self.session.get(service_resources_url, verify=self.verify)
         response_json = self._parse(response)
         for entry in response_json["queryResponse"]["operation"]:
             self._service_resources[entry["$"]] = {"method": entry["@httpMethod"], "url": six.moves.urllib.parse.urljoin(self.base_url, "op/%s.json" % entry["@path"])}
@@ -345,7 +345,7 @@ class PIAPI(object):
             Data results from the requested resources.
         """
         if resource_name not in self.service_resources:
-            raise PIAPIResourceNotFound("Service Resource '%s' not found in the API, check 'action_resources' property "
+            raise PIAPIResourceNotFound("Service Resource '%s' not found in the API, check 'service_resources' property "
                                         "for a list of available actions" % resource_name)
 
         method = self._service_resources[resource_name]["method"]
