@@ -354,7 +354,7 @@ class PIAPI(object):
         # if the HTTP method is 'GET', use the params args of request, otherwise use data (POST, DELETE, PUT)
         if method == "GET":
             response = self.session.request(method, url, params=params, verify=self.verify, timeout=timeout)
-        elif method == "PUT":
+        elif method == "PUT" or method == "POST":
             response = self.session.request(method, url, data=json.dumps(params), headers=headers, verify=self.verify, timeout=timeout)
         else:
             response = self.session.request(method, url, data=params, verify=self.verify, timeout=timeout)
