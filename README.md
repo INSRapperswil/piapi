@@ -68,7 +68,7 @@ api = PIAPI("https://pi-server/", "username" , "password")
 
 api.resources
 api.data_resources
-api.action_resources
+api.service_resources
 
 #  Request a Data resource from the API
 api.request("Clients", params={"connectionType": "LIGHTWEIGHTWIRELESS"})
