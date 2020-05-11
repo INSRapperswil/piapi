@@ -23,11 +23,11 @@ from setuptools import setup
 
 setup(
     name='piapi',
-    version='0.1.4',
+    version='0.1.5',
     py_modules=['piapi'],
     platforms='any',
     url='https://github.com/HSRNetwork/piapi',
-    download_url='https://github.com/HSRNetwork/piapi/archive/0.1.4.tar.gz',
+    download_url='https://github.com/HSRNetwork/piapi/archive/0.1.5.tar.gz',
     license='Apache',
     author='maximumG',
     author_email='mgerges@stubbynet.com',
