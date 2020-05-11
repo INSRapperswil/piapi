@@ -27,7 +27,7 @@ setup(
     py_modules=['piapi'],
     platforms='any',
     url='https://github.com/HSRNetwork/piapi',
-    download_url='https://github.com/HSRNetwork/piapi/tarball/0.1.4',
+    download_url='https://github.com/HSRNetwork/piapi/archive/0.1.4.tar.gz',
     license='Apache',
     author='maximumG',
     author_email='mgerges@stubbynet.com',
