@@ -30,20 +30,13 @@ the default XML structure.
 Please check your Cisco Prime REST API available at http://{server-name}/webacs/api/v1/
 """
 
-from __future__ import absolute_import
-import six.moves.urllib.parse
-import time
-import copy
-import hashlib
-import threading
-import six.moves.queue
-import json
-
 import requests
-import requests.auth
-from six.moves import range
+import json
+import threading
+import copy
+import time
+from queue import Queue
 
-#import grequests
 
 """
 Default number of concurrent requests (check *Rate Limiting* of the API)
@@ -61,10 +54,6 @@ DEFAULT_HOLD_TIME = 1
 Default time in second to wait for a response fomr the REST API
 """
 DEFAULT_REQUEST_TIMEOUT = 300
-"""
-Default base URI of the Prime API
-"""
-DEFAULT_API_URI = "/webacs/api/v3/"
 
 
 class PIAPIError(Exception):
@@ -90,41 +79,15 @@ class PIAPIResourceNotFound(PIAPIError):
     Error raised by the piapi module when a requested resource is not available in the API.
     """
 
+class bsuPrimeAPI():
 
-class PIAPI(object):
-    """
-    Interface with the Cisco Prime Infrastructure REST API.
+    # Constructor
+    def __init__(self,host,username,password,verify=True, virtual_domain=None):
 
-    Attributes
-    ----------
-    base_url : str
-        The base URL to get access to the API (e.g. https://{server}/webacs/v1/api/).
-    verify : bool
-        Whether or not to verify the server's SSL certificate.
-    cache : dict
-        Cache for all data requests already performed.
-    session : requests.Session
-        HTTP session that will be used as base for all interaction with the REST API.
-
-    Parameters
-    ----------
-    url : str
-        The base URL to get access to Cisco Prime Infrastructure (without the URI of the REST API!).
-    username : str
-        Username to be used for authentication.
-    password : str
-        Password to be used for authentication.
-    verify : bool (optional)
-        Whether or not to verify the server's SSL certificate (default: True).
-    virtual_domain : str (optional)
-        The virtual domain used by all the request. Virtual domain are used as a filter (default: None).
-    """
-
-    def __init__(self, url, username, password, verify=True, virtual_domain=None):
         """
         Constructor of the PIAPI class.
         """
-        self.base_url = six.moves.urllib.parse.urljoin(url, DEFAULT_API_URI)
+        self.base_url = f"https://{host}/webacs/api/v4"
         self.verify = verify
         self.virtual_domain = virtual_domain
         self.cache = {}  # Caching is used for data resource with keys as checksum of resource's name+params from the request
@@ -150,12 +113,10 @@ class PIAPI(object):
         """
         Parse a requests.Response object to check for potential errors using the HTTP status code.
         Please check your Cisco Prime Infrastructure REST API documentation for errors and return code.
-
         Parameters
         ----------
         response : requests.Response
             HTTP response from an HTTP requests.
-
         Returns
         -------
         response_json : JSON structure
@@ -191,7 +152,6 @@ class PIAPI(object):
     def _request_wrapper(self, queue, url, params, timeout):
         """
         Wrapper to requests used by each thread.
-
         Parameters
         ----------
         queue : Queue.Queue
@@ -221,7 +181,7 @@ class PIAPI(object):
         if self._data_resources:
             return list(self._data_resources.keys())
 
-        data_resources_url = six.moves.urllib.parse.urljoin(self.base_url, "data.json")
+        data_resources_url = f"{self.base_url}/data.json"
         response = self.session.get(data_resources_url, verify=self.verify)
         response_json = self._parse(response)
         for entry in response_json["queryResponse"]["entityType"]:
@@ -237,11 +197,11 @@ class PIAPI(object):
         if self._service_resources:
             return list(self._service_resources.keys())
 
-        service_resources_url = six.moves.urllib.parse.urljoin(self.base_url, "op.json")
+        service_resources_url = f"{self.base_url}/op.json"
         response = self.session.get(service_resources_url, verify=self.verify)
         response_json = self._parse(response)
         for entry in response_json["queryResponse"]["operation"]:
-            self._service_resources[entry["$"]] = {"method": entry["@httpMethod"], "url": six.moves.urllib.parse.urljoin(self.base_url, "op/%s.json" % entry["@path"])}
+            self._service_resources[entry["$"]] = {"method": entry["@httpMethod"], "url": "%s/op/%s.json" % (self.base_url,entry["@path"])}
 
         return list(self._service_resources.keys())
 
@@ -249,11 +209,9 @@ class PIAPI(object):
         """
         Request a 'resource_name' resource from the REST API. The request can be tuned with filtering, sorting options.
         Check the REST API documentation for available filters by resource.
-
         To bypass rate limiting feature of the API you can tune paging_size, concurrent_requests and hold_time parameters.
         'X' concurrent requests will be sent as chunk and we will wait the hold time before sending the next chunk until
         all resource_name have been retrieved.
-
         Parameters
         ----------
         resource_name : str
@@ -270,7 +228,6 @@ class PIAPI(object):
             Number of parallel requests to make (default : piapi.DEFAULT_CONCURRENT_REQUEST).
         hold : int (optional)
             Hold time in second to wait between chunk of concurrent requests to avoid rate limiting (default : piapi.DEFAULT_HOLD_TIME).
-
         Returns
         -------
         results : JSON structure
@@ -294,7 +251,7 @@ class PIAPI(object):
 
         #  Create the necessary requests with paging to avoid rate limiting
         paging_requests = []
-        queue = six.moves.queue.Queue()
+        queue = Queue()
         for first_result in range(0, count_entry, paging_size):
             params_copy = copy.deepcopy(params)
             params_copy.update({".full": "true", ".firstResult": first_result, ".maxResults": paging_size})
@@ -329,7 +286,6 @@ class PIAPI(object):
     def request_service(self, resource_name, params=None, timeout=DEFAULT_REQUEST_TIMEOUT):
         """
         Request a service resource from the REST API.
-
         Parameters
         ----------
         resource_name : str
@@ -338,7 +294,6 @@ class PIAPI(object):
             JSON parameters to be sent along the resource_name request (default : empty dict)
         timeout : int (optional)
             Time to wait for a response from the REST API (default : piapi.DEFAULT_REQUEST_TIMEOUT)
-
         Returns
         -------
         results : JSON structure
@@ -365,7 +320,6 @@ class PIAPI(object):
         """
         Generic request for either data or services resources. The parameters correspond to the ones from
         *PIAPI.request_data* or *PIAPI.request_action*.
-
         Parameters
         ----------
         resource : str
@@ -384,7 +338,6 @@ class PIAPI(object):
             Number of parallel requests to make (default : piapi.DEFAULT_CONCURRENT_REQUEST).
         hold : int (optional)
             Hold time in second to wait between chunk of concurrent requests to avoid rate limiting (default : piapi.DEFAULT_HOLD_TIME).
-
         Returns
         -------
         results : JSON structure
@@ -402,7 +355,6 @@ class PIAPI(object):
     def __getattr__(self, item):
         """
         Magic method used to render all resources as class attribute
-
         item : str
             Name of the resource to be found
         """
@@ -410,3 +362,4 @@ class PIAPI(object):
             return self.request(item)
         raise AttributeError("'%s' resource not found in the REST API" % item)
 
+      
